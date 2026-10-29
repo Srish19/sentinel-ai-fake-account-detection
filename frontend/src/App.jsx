@@ -3,7 +3,11 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-const api = axios.create({ baseURL: "/api" });
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "/api",
+});
+
 
 const EMPTY_FORM = {
   username: "",
