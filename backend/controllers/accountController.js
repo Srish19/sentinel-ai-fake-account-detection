@@ -175,16 +175,27 @@ const analyzeAccount = async (req, res) => {
         };
 
         // 3. Request prediction from the Python Flask API
-        const mlResponse = await axios.post(
-            "http://127.0.0.1:8000/predict",
-            features,
-            {
-                timeout: 10000,
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        );
+        
+const mlApiUrl = process.env.ML_API_URL;
+
+if (!mlApiUrl) {
+    return res.status(500).json({
+        success: false,
+        message: "ML_API_URL is not configured."
+    });
+}
+
+const mlResponse = await axios.post(
+    `${mlApiUrl.replace(/\/+$/, "")}/predict`,
+    features,
+    {
+        timeout: 30000,
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }
+);
+
 
         const prediction = mlResponse.data;
         const fakeProbability = Number(
@@ -244,13 +255,17 @@ const analyzeAccount = async (req, res) => {
             error.response?.data || error.message
         );
 
-        if (error.code === "ECONNREFUSED") {
-            return res.status(502).json({
-                success: false,
-                message:
-                    "Cannot connect to Python ML API. Ensure it is running on port 8000."
-            });
-        }
+        if (
+    error.code === "ECONNREFUSED" ||
+    error.code === "ENOTFOUND" ||
+    error.code === "EAI_AGAIN"
+) {
+    return res.status(502).json({
+        success: false,
+        message: "Cannot connect to the deployed ML API. Check ML_API_URL."
+    });
+}
+        
 
         if (error.code === "ECONNABORTED") {
             return res.status(504).json({
